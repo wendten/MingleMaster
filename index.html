@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-title: 'Cinzel', serif;
+            --font-body: 'Lato', sans-serif;
+
+            --color-dark-brown: #3A2E28;
+            --color-mustard-gold: #C79938;
+            --color-accent-gold: #E8C57A;
+            --color-text-on-gold: var(--color-dark-brown);
+            --color-text-on-dark: var(--color-accent-gold);
+            
+            --color-page-bg: #FDF6E3;
+            --color-ui-panel-bg: #FAF0DC;
+            --color-button-bg: var(--color-mustard-gold);
+            --color-button-text: var(--color-dark-brown);
+            --color-input-border: #B08D4A;
+
+            --border-image-thickness: 30px; 
+            --corner-image-size: 30px;    
+        }
+
+        body {
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--color-mustard-gold);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            background-image: url('background_light.png');
+            background-color: var(--color-page-bg);
+            background-repeat: repeat;
+        }
+
+        .hidden { display: none !important; }
+
+        .themed-container {
+            position: relative; 
+            padding: var(--border-image-thickness); 
+            border: none; 
+            border-radius: 8px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 700px;
+            background-image: url('background_dark.png');
+            background-color: var(--color-ui-panel-bg);
+            background-repeat: repeat;
+        }
+
+        .themed-container-content {
+            position: relative; 
+            z-index: 1; 
+        }
+
+        .border-piece {
+            position: absolute;
+            /* background-repeat: no-repeat; /* Will be overridden by specific side rules */
+            z-index: 0; 
+        }
+
+        .corner-img {
+            width: var(--corner-image-size);
+            height: var(--corner-image-size);
+            background-image: url('borders/corner.png');
+            background-size: var(--corner-image-size) var(--corner-image-size);
+            background-repeat: no-repeat; /* Corners should not repeat */
+        }
+        .corner-img.tl { top: 0; left: 0; }
+        .corner-img.tr { top: 0; right: 0; transform: rotate(90deg); }
+        .corner-img.br { bottom: 0; right: 0; transform: rotate(180deg); }
+        .corner-img.bl { bottom: 0; left: 0; transform: rotate(270deg); }
+
+        /* Horizontal side images (top/bottom) - MODIFIED FOR TILING */
+        .side-img.ts, .side-img.bs { 
+            left: var(--corner-image-size);
+            right: var(--corner-image-size);
+            height: var(--border-image-thickness);
+            background-image: url('borders/side.png'); 
+            background-size: auto var(--border-image-thickness); /* Tile horizontally */
+            background-repeat: repeat-x; 
+            transform-origin: center center;
+        }
+        .side-img.ts { 
+            top: 0;
+            transform: rotate(180deg); 
+        }
+        .side-img.bs { 
+            bottom: 0; 
+        }
+
+        /* Vertical Left and Right Side Image Styles - MODIFIED FOR TILING */
+        .side-img.ls, .side-img.rs { 
+            top: var(--corner-image-size);
+            bottom: var(--corner-image-size);
+            width: var(--border-image-thickness); 
+            background-image: url('borders/side_vertical.png'); 
+            background-size: var(--border-image-thickness) auto; /* Tile vertically */
+            background-repeat: repeat-y; 
+        }
+        .side-img.ls { 
+            left: 0;
+        }
+        .side-img.rs { 
+            right: 0;
+            transform: rotate(180deg); 
+            transform-origin: center center; 
+        }
+        /* === End of UPDATED Side Image Styles === */
+
+
+        h2 {
+            font-family: var(--font-title);
+            color: var(--color-mustard-gold);
+            text-align: center;
+            margin-top: 0; 
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+        
+        #current-player-info {
+            font-family: var(--font-title);
+            color: var(--color-mustard-gold);
+            text-align: center;
+            font-size: 1.4em;
+            margin-top: 0; 
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        .player-input-group { margin-bottom: 15px; display: flex; gap: 10px; align-items: center;}
+        .player-input-group label {
+            flex-basis: 80px;
+            font-weight: 700;
+            color: var(--color-mustard-gold);
+         }
+        .player-input-group input, .player-input-group select {
+            flex-grow: 1; padding: 10px;
+            border: 1px solid var(--color-input-border);
+            border-radius: 4px; 
+            background-color: #fff;
+            color: var(--color-dark-brown);
+            font-family: var(--font-body);
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: var(--color-button-bg);
+            color: var(--color-button-text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            font-family: var(--font-title);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: var(--color-accent-gold);
+        }
+        button:disabled {
+            background-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        #decks-container {
+            display: flex; justify-content: center; margin-bottom: 30px;
+            flex-wrap: nowrap; overflow-x: auto; padding: 10px 0; transition: opacity 0.3s;
+        }
+        body.interaction-in-progress #decks-container { opacity: 0.5; pointer-events: none; }
+
+        .deck {
+            width: 108px; height: 164px; margin: 0 10px; cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.3s, transform 0.3s;
+            flex-shrink: 0;
+            border-radius: 0px; 
+        }
+        .deck:hover {
+            border-color: var(--color-accent-gold);
+            transform: translateY(-5px);
+        }
+        .deck img {
+            width: 100%; height: 100%; object-fit: cover;
+            border-radius: 0px; 
+            box-shadow: 0 3px 7px rgba(0,0,0,0.2);
+        }
+
+        #card-display-area {
+            width: var(--card-final-width, 216px);
+            height: var(--card-final-height, 328px);
+            perspective: 1000px;
+            margin: 20px auto;
+            position: relative;
+            visibility: hidden;
+            opacity: 0;
+        }
+        #card-display-area.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .card-flipper {
+            width: 100%; height: 100%; position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+            cursor: default;
+        }
+        .card-flipper.flippable:not(.flipped) { cursor: pointer; }
+        .card-flipper.flipped { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; display: flex; justify-content: center; align-items: center;
+            border-radius: 0px; 
+            background-color: var(--color-mustard-gold); 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+        .card-face img {
+            max-width: 100%; max-height: 100%;
+            border-radius: 0px; 
+            object-fit: contain; 
+        }
+        .card-back {
+            transform: rotateY(0deg);
+            background-color: var(--color-dark-brown); 
+        }
+        .card-front { transform: rotateY(180deg); }
+
+        .drawing-card-temp {
+            position: fixed; z-index: 1000;
+            border-radius: 0px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition-property: left, top, width, height;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div id="player-setup" class="themed-container">
+        <div class="border-piece corner-img tl"></div>
+        <div class="border-piece corner-img tr"></div>
+        <div class="border-piece corner-img bl"></div>
+        <div class="border-piece corner-img br"></div>
+        <div class="border-piece side-img ts"></div> 
+        <div class="border-piece side-img bs"></div> 
+        <div class="border-piece side-img ls"></div> 
+        <div class="border-piece side-img rs"></div> 
+        <div class="themed-container-content">
+            <h2>Vælg spillere</h2>
+            <div><label for="num-players">Antal Spillere (2-8):</label><input type="number" id="num-players" min="2" max="8" value="2"></div>
+            <div id="player-names-container"></div>
+            <button id="start-game-btn">Start Spillet</button>
+        </div>
+    </div>
+
+    <div id="game-area" class="hidden themed-container">
+        <div class="border-piece corner-img tl"></div>
+        <div class="border-piece corner-img tr"></div>
+        <div class="border-piece corner-img bl"></div>
+        <div class="border-piece corner-img br"></div>
+        <div class="border-piece side-img ts"></div> 
+        <div class="border-piece side-img bs"></div> 
+        <div class="border-piece side-img ls"></div> 
+        <div class="border-piece side-img rs"></div> 
+        <div class="themed-container-content">
+            <div id="current-player-info"></div>
+            <h2>Vælg et Level (Level 1-5)</h2>
+            <div id="decks-container"></div>
+            <div id="card-display-area">
+                <div class="card-flipper" id="card-flipper">
+                    <div class="card-face card-back"><img id="displayed-card-back-img" src="" alt="Card Back"></div>
+                    <div class="card-face card-front"><img id="displayed-card-front-img" src="" alt="Card Front"></div>
+                </div>
+            </div>
+            <div style="text-align: center;"><button id="next-turn-btn" class="hidden">Næste Runde</button></div>
+        </div>
+    </div>
+
+<script>
+    // All JavaScript remains the same
+    const LEVEL_CARD_COUNTS = { level1: 3, level2: 3, level3: 3, level4: 3, level5: 3 };
+    const IMAGE_EXTENSION = ".png";
+    const NUM_LEVELS = 5;
+    const DRAW_ANIMATION_DURATION_MS = 600;
+    const FLIP_DELAY_MS = 50;
+    const CLICK_TO_FLIP_ENABLED = true;
+
+    const CARD_FINAL_WIDTH = 216;
+    const CARD_FINAL_HEIGHT = 328;
+
+    let players = [];
+    let currentPlayerIndex = 0;
+    let gameStarted = false;
+    let interactionInProgress = false;
+
+    const numPlayersInput = document.getElementById('num-players');
+    const playerNamesContainer = document.getElementById('player-names-container');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const playerSetupDiv = document.getElementById('player-setup'); 
+    const gameAreaDiv = document.getElementById('game-area');       
+    const currentPlayerInfoDiv = document.getElementById('current-player-info');
+    const decksContainer = document.getElementById('decks-container');
+    const cardDisplayArea = document.getElementById('card-display-area');
+    const cardFlipper = document.getElementById('card-flipper');
+    const displayedCardBackImg = document.getElementById('displayed-card-back-img');
+    const displayedCardFrontImg = document.getElementById('displayed-card-front-img');
+    const nextTurnBtn = document.getElementById('next-turn-btn');
+
+    numPlayersInput.addEventListener('change', setupPlayerInputs);
+    startGameBtn.addEventListener('click', startGame);
+    nextTurnBtn.addEventListener('click', handleNextTurn);
+    if (CLICK_TO_FLIP_ENABLED) {
+        cardFlipper.addEventListener('click', tryFlipCardOnClick);
+    }
+
+    function setupPlayerInputs() {
+        playerNamesContainer.innerHTML = '';
+        const count = parseInt(numPlayersInput.value);
+        if (count >= 2 && count <= 8) {
+            for (let i = 0; i < count; i++) {
+                const div = document.createElement('div');
+                div.classList.add('player-input-group');
+                div.innerHTML = `<label for="player-name-${i}">P${i + 1} Navn:</label><input type="text" id="player-name-${i}" placeholder="Spiller ${i + 1}" required><label for="player-gender-${i}">Køn:</label><select id="player-gender-${i}"><option value="Male">Mand</option><option value="Female">Kvinde</option><option value="Other">Andet</option></select>`;
+                playerNamesContainer.appendChild(div);
+            }
+        }
+    }
+
+    function startGame() {
+        players = [];
+        const count = parseInt(numPlayersInput.value);
+        let allNamesEntered = true;
+        for (let i = 0; i < count; i++) {
+            const nameInput = document.getElementById(`player-name-${i}`);
+            const genderSelect = document.getElementById(`player-gender-${i}`);
+            if (!nameInput || !nameInput.value.trim()) { allNamesEntered = false; break; }
+            players.push({ name: nameInput.value.trim(), gender: genderSelect.value });
+        }
+        if (!allNamesEntered || players.length < 2) {
+            alert('Udfyld venligst navne for alle spillere.'); return;
+        }
+        gameStarted = true; currentPlayerIndex = 0;
+        playerSetupDiv.classList.add('hidden'); 
+        gameAreaDiv.classList.remove('hidden'); 
+        createDecks();
+        resetCardDisplayAndState();
+        updateTurnDisplay();
+    }
+
+    function createDecks() {
+        decksContainer.innerHTML = '';
+        for (let i = 1; i <= NUM_LEVELS; i++) {
+            const deckDiv = document.createElement('div');
+            deckDiv.classList.add('deck');
+            deckDiv.dataset.level = i;
+            const img = document.createElement('img');
+            img.src = `backside/level${i}${IMAGE_EXTENSION}`;
+            img.alt = `Level ${i} Deck`;
+            deckDiv.appendChild(img);
+            deckDiv.addEventListener('click', function() { handleDeckClick(i, this); });
+            decksContainer.appendChild(deckDiv);
+        }
+    }
+
+    function updateTurnDisplay() {
+        if (players.length > 0) {
+            currentPlayerInfoDiv.textContent = `${players[currentPlayerIndex].name}'s Tur`;
+        }
+        interactionInProgress = false;
+        document.body.classList.remove('interaction-in-progress');
+        nextTurnBtn.classList.add('hidden');
+        cardFlipper.classList.remove('flippable');
+    }
+    
+    function resetCardDisplayAndState() {
+        cardDisplayArea.classList.remove('visible');
+        cardFlipper.classList.remove('flipped', 'flippable');
+        displayedCardBackImg.src = "";
+        displayedCardFrontImg.src = "";
+        const tempCard = document.querySelector('.drawing-card-temp');
+        if (tempCard) tempCard.remove();
+    }
+
+    function handleDeckClick(level, sourceDeckElement) {
+        if (!gameStarted || interactionInProgress) return;
+
+        interactionInProgress = true;
+        document.body.classList.add('interaction-in-progress');
+        nextTurnBtn.classList.add('hidden');
+
+        const cardCount = LEVEL_CARD_COUNTS[`level${level}`];
+        if (!cardCount || cardCount === 0) {
+            alert(`Ingen kort konfigureret for Level ${level}.`);
+            interactionInProgress = false;
+            document.body.classList.remove('interaction-in-progress');
+            return;
+        }
+
+        const randomNumber = Math.floor(Math.random() * cardCount) + 1;
+        const pickedCardPath = `level${level}/${randomNumber}${IMAGE_EXTENSION}`;
+        const backsidePath = `backside/level${level}${IMAGE_EXTENSION}`;
+
+        displayedCardBackImg.src = backsidePath;
+        displayedCardFrontImg.src = pickedCardPath;
+
+        const tempCard = document.createElement('img');
+        tempCard.src = backsidePath;
+        tempCard.classList.add('drawing-card-temp');
+        
+        const sourceRect = sourceDeckElement.getBoundingClientRect();
+        tempCard.style.left = `${sourceRect.left}px`;
+        tempCard.style.top = `${sourceRect.top}px`;
+        tempCard.style.width = `${sourceRect.width}px`;
+        tempCard.style.height = `${sourceRect.height}px`;
+        tempCard.style.opacity = '1'; 
+        tempCard.style.transitionDuration = `${DRAW_ANIMATION_DURATION_MS}ms`;
+
+        document.body.appendChild(tempCard);
+        void tempCard.offsetWidth; 
+
+        const targetRect = cardDisplayArea.getBoundingClientRect();
+        
+        tempCard.style.left = `${targetRect.left}px`;
+        tempCard.style.top = `${targetRect.top}px`;
+        tempCard.style.width = `${CARD_FINAL_WIDTH}px`;
+        tempCard.style.height = `${CARD_FINAL_HEIGHT}px`;
+
+        tempCard.addEventListener('transitionend', function onDrawTempEnd() {
+            if (!interactionInProgress) {
+                if(tempCard) tempCard.remove();
+                resetCardDisplayAndState();
+                return;
+            }
+            prepareAndPotentiallyFlipCard(); 
+            if(tempCard) tempCard.remove(); 
+        }, { once: true });
+    }
+
+    function prepareAndPotentiallyFlipCard() {
+        if (!interactionInProgress) return;
+
+        cardDisplayArea.classList.add('visible'); 
+        cardFlipper.classList.remove('flipped');    
+
+        let backLoaded = displayedCardBackImg.complete && displayedCardBackImg.naturalHeight !== 0;
+        let frontLoaded = displayedCardFrontImg.complete && displayedCardFrontImg.naturalHeight !== 0;
+
+        const onActualBackLoad = () => { backLoaded = true; if (frontLoaded) attemptFlipOrMakeFlippable(); };
+        const onActualFrontLoad = () => { frontLoaded = true; if (backLoaded) attemptFlipOrMakeFlippable(); };
+        const onActualImageError = (imgType) => {
+            console.error("Error loading actual card image:", imgType === 'back' ? displayedCardBackImg.src : displayedCardFrontImg.src);
+            if (imgType === 'back') backLoaded = true; else frontLoaded = true;
+            if (backLoaded && frontLoaded) attemptFlipOrMakeFlippable();
+        };
+
+        if (!backLoaded) { displayedCardBackImg.onload = onActualBackLoad; displayedCardBackImg.onerror = () => onActualImageError('back'); }
+        if (!frontLoaded) { displayedCardFrontImg.onload = onActualFrontLoad; displayedCardFrontImg.onerror = () => onActualImageError('front'); }
+        
+        if (backLoaded && frontLoaded) {
+            attemptFlipOrMakeFlippable();
+        }
+    }
+    
+    function attemptFlipOrMakeFlippable() {
+        if (!interactionInProgress) return;
+
+        if (CLICK_TO_FLIP_ENABLED) {
+            cardFlipper.classList.add('flippable');
+        } else { 
+            void cardFlipper.offsetWidth;
+            setTimeout(() => {
+                if (interactionInProgress) {
+                    cardFlipper.classList.add('flipped');
+                    cardFlipper.addEventListener('transitionend', function onAutoFlipEnd(e) {
+                        if (e.propertyName === 'transform' && interactionInProgress) {
+                            nextTurnBtn.classList.remove('hidden');
+                        }
+                    }, { once: true });
+                }
+            }, FLIP_DELAY_MS);
+        }
+    }
+
+    function tryFlipCardOnClick() {
+        if (!interactionInProgress || !cardFlipper.classList.contains('flippable') || cardFlipper.classList.contains('flipped')) return;
+        
+        cardFlipper.classList.remove('flippable');
+        void cardFlipper.offsetWidth;
+        cardFlipper.classList.add('flipped');
+
+        cardFlipper.addEventListener('transitionend', function onClickFlipEnd(e) {
+            if (e.propertyName === 'transform' && interactionInProgress) {
+                nextTurnBtn.classList.remove('hidden');
+            }
+        }, { once: true });
+    }
+
+    function handleNextTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        resetCardDisplayAndState();
+        updateTurnDisplay();
+    }
+    
+    setupPlayerInputs();
+</script>
+</body>
+</html>
